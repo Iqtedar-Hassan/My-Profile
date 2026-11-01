@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'data/profile_user.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -182,8 +184,6 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final String correctEmail = 'iqtedar555@gmail.com';
-  final String correctPassword = 'Iqtedar@1214';
   bool _hidePassword = true;
   bool _showLogin = false;
 
@@ -196,16 +196,25 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void login() {
-    final email = emailController.text.trim();
+    final email = emailController.text.trim().toLowerCase();
     final password = passwordController.text;
 
-    if (email == correctEmail && password == correctPassword) {
+    ProfileUser? loggedInUser;
+
+    for (final user in demoUsers) {
+      if (user.email.toLowerCase() == email && user.password == password) {
+        loggedInUser = user;
+        break;
+      }
+    }
+
+    if (loggedInUser != null) {
       Navigator.push(
         context,
         PageRouteBuilder(
           transitionDuration: const Duration(milliseconds: 700),
           reverseTransitionDuration: const Duration(milliseconds: 500),
-          pageBuilder: (_, animation, __) => const HomePage(),
+          pageBuilder: (_, animation, __) => HomePage(user: loggedInUser!),
           transitionsBuilder: (_, animation, __, child) {
             final curved = CurvedAnimation(
               parent: animation,
@@ -366,7 +375,9 @@ class _LoginPageState extends State<LoginPage> {
 }
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final ProfileUser user;
+
+  const HomePage({super.key, required this.user});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -499,7 +510,7 @@ class _HomePageState extends State<HomePage> {
       barrierColor: Colors.black.withValues(alpha: 0.48),
       transitionDuration: const Duration(milliseconds: 550),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return const Center(child: ContactDialog());
+        return Center(child: ContactDialog(user: widget.user));
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curved = CurvedAnimation(
@@ -528,10 +539,19 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'IQTEDAR HASSAN',
-          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
+        title: Text(
+          widget.user.name.toUpperCase(),
+          style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            icon: const Icon(Icons.logout_rounded),
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -577,17 +597,18 @@ class _HomePageState extends State<HomePage> {
                               width: 3,
                             ),
                           ),
-                          child: const CircleAvatar(
+                          child: CircleAvatar(
                             radius: 67,
-                            backgroundImage: AssetImage('Images/Pic.png'),
+                            backgroundColor: Colors.white,
+                            backgroundImage: AssetImage(widget.user.imagePath),
                           ),
                         ),
                       ),
                       const SizedBox(height: 18),
-                      const Text(
-                        'Iqtedar Hassan',
+                      Text(
+                        widget.user.name,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 27,
                           fontWeight: FontWeight.w800,
                           color: Colors.white,
@@ -603,9 +624,10 @@ class _HomePageState extends State<HomePage> {
                           color: Colors.white.withValues(alpha: 0.17),
                           borderRadius: BorderRadius.circular(30),
                         ),
-                        child: const Text(
-                          'Software Engineer',
-                          style: TextStyle(
+                        child: Text(
+                          widget.user.role,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
                             color: Colors.white,
                             fontSize: 15,
                             fontWeight: FontWeight.w600,
@@ -623,25 +645,21 @@ class _HomePageState extends State<HomePage> {
                   icon: Icons.badge_outlined,
                   child: Column(
                     children: [
-                      infoRow(
-                        Icons.email_outlined,
-                        'Email',
-                        '64280@students.riphah.edu.pk',
-                      ),
+                      infoRow(Icons.email_outlined, 'Email', widget.user.email),
                       infoRow(
                         Icons.account_balance_outlined,
                         'University',
-                        'Riphah International University',
+                        widget.user.university,
                       ),
                       infoRow(
                         Icons.school_outlined,
                         'Program',
-                        'BS Software Engineering',
+                        widget.user.program,
                       ),
                       infoRow(
                         Icons.calendar_month_outlined,
                         'Semester',
-                        '5th Semester',
+                        widget.user.semester,
                       ),
                     ],
                   ),
@@ -652,9 +670,9 @@ class _HomePageState extends State<HomePage> {
                 child: sectionCard(
                   title: 'About Me',
                   icon: Icons.person_outline_rounded,
-                  child: const Text(
-                    'I am a Software Engineering Student interested in PF, DB Systems, Mobile App Development and Website Development.',
-                    style: TextStyle(
+                  child: Text(
+                    widget.user.about,
+                    style: const TextStyle(
                       fontSize: 15,
                       height: 1.65,
                       color: Color(0xFF536078),
@@ -730,7 +748,9 @@ class _ContactMeButtonState extends State<_ContactMeButton>
 }
 
 class ContactDialog extends StatelessWidget {
-  const ContactDialog({super.key});
+  final ProfileUser user;
+
+  const ContactDialog({super.key, required this.user});
 
   @override
   Widget build(BuildContext context) {
@@ -795,13 +815,13 @@ class ContactDialog extends StatelessWidget {
             _ContactInfoTile(
               icon: Icons.phone_android_rounded,
               label: 'WhatsApp',
-              value: '+92 344 7466814',
+              value: user.phone,
             ),
             const SizedBox(height: 12),
             _ContactInfoTile(
               icon: Icons.email_outlined,
               label: 'Email',
-              value: '64280@students.riphah.edu.pk',
+              value: user.email,
             ),
             const SizedBox(height: 22),
             SizedBox(
